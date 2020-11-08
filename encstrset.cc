@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include "encstrset.h"
+
 namespace {
     using std::cerr;
     using std::endl;
