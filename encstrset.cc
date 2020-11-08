@@ -32,8 +32,15 @@ namespace {
     constexpr bool debug = true;
 #endif
 
-    unsigned long added_sets = 0;
-    unordered_map<unsigned long, unordered_set<string>> encrypted;
+    unsigned long &added_sets() {
+        static unsigned long added_sets = 0;
+        return added_sets;
+    }
+
+    unordered_map<unsigned long, unordered_set<string>> &encrypted() {
+        static unordered_map<unsigned long, unordered_set<string>> encrypted;
+        return encrypted;
+    }
 
     inline void print_func_call_if_debug(const string &func_name) {
         if (debug) {
@@ -104,28 +111,28 @@ namespace {
     }
 
     void clear_set(unsigned long id) {
-        encrypted[id].clear();
+        encrypted()[id].clear();
     }
 
     void erase_set(unsigned long id) {
-        encrypted.erase(id);
+        encrypted().erase(id);
     }
 
     void insert_value(unsigned long id, const string &value) {
-        encrypted[id].insert(value);
+        encrypted()[id].insert(value);
     }
 
     void erase_value(unsigned long id, const string &value) {
-        encrypted[id].erase(value);
+        encrypted()[id].erase(value);
     }
 
     inline bool is_set_present(const unsigned long id) {
-        return encrypted.find(id) != encrypted.end();
+        return encrypted().find(id) != encrypted().end();
     }
 
     inline bool is_value_present(const unsigned long id, const string &value) {
         return is_set_present(id) &&
-               encrypted[id].find(value) != encrypted[id].end();
+               encrypted()[id].find(value) != encrypted()[id].end();
     }
 
     void encrypt(string &s, const string &key) {
@@ -231,12 +238,12 @@ namespace jnp1 {
         print_func_call_if_debug("encstrset_new");
 
         unordered_set<string> new_set;
-        encrypted.insert(make_pair(added_sets, new_set));
+        encrypted().insert(make_pair(added_sets(), new_set));
 
-        assert(is_set_present(added_sets));
-        print_set_info_if_debug("encstrset_new", added_sets, " created");
+        assert(is_set_present(added_sets()));
+        print_set_info_if_debug("encstrset_new", added_sets(), " created");
 
-        return added_sets++;
+        return added_sets()++;
     }
 
     void encstrset_delete(unsigned long id) {
@@ -254,10 +261,10 @@ namespace jnp1 {
         }
 
         stringstream info;
-        info << "contains " << encrypted[id].size() << " element(s)";
+        info << "contains " << encrypted()[id].size() << " element(s)";
         print_set_info_if_debug("encstrset_size", id, info.str());
 
-        return encrypted[id].size();
+        return encrypted()[id].size();
     }
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
@@ -293,8 +300,8 @@ namespace jnp1 {
             print_set_info_if_debug("encstrset_clear", dst_id, " does not exist");
         }
         else {
-            for (const string &s : encrypted[src_id]) {
-                bool added = encrypted[dst_id].insert(s).second;
+            for (const string &s : encrypted()[src_id]) {
+                bool added = encrypted()[dst_id].insert(s).second;
 
                 stringstream info;
                 info << ": ";
