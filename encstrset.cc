@@ -17,19 +17,21 @@ using std::setw;
 using std::hex;
 using std::string;
 using std::stringstream;
-using std::get;
 using std::pair;
 using std::make_pair;
 using std::unordered_set;
 using std::unordered_map;
 
+using set_func_t = void (*)(unsigned long);
+using val_func_t = void (*)(unsigned long, const string &);
+
 static unsigned long added_sets = 0;
 static unordered_map<unsigned long, unordered_set<string>> encrypted;
 
 #ifdef NDEBUG
-static const bool debug = false;
+static constexpr bool debug = false;
 #else
-static const bool debug = true;
+static constexpr bool debug = true;
 #endif
 
 static inline void print_func_call_if_debug(const string &func_name) {
@@ -57,7 +59,8 @@ static inline void print_func_call_if_debug(const string &func_name,
                                             unsigned long id,
                                             const string &value, const string &key) {
     if (debug) {
-        cerr << func_name << "(" << id << ", " << value << ", " << key << ")" << endl;
+        cerr << func_name << "(" << id << ", " << value << ", " << key << ")"
+             << endl;
     }
 }
 
@@ -75,7 +78,7 @@ static inline void print_func_info_if_debug(const string &func_name,
     }
 }
 
-static string string_repr(const char *str) {
+static inline string string_repr(const char *str) {
     string enclosing = (str == nullptr ? "" : R"(")");
     return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
 }
@@ -99,12 +102,28 @@ static string cypher(const string &s) {
     return cyphered.str();
 }
 
-static bool is_set_present(const unsigned long id) {
+static void clear_set(unsigned long id) {
+    encrypted[id].clear();
+}
+
+static void erase_set(unsigned long id) {
+    encrypted.erase(id);
+}
+
+static void insert_value(unsigned long id, const string &value) {
+    encrypted[id].insert(value);
+}
+
+static void erase_value(unsigned long id, const string &value) {
+    encrypted[id].erase(value);
+}
+
+static inline bool is_set_present(const unsigned long id) {
     return encrypted.find(id) != encrypted.end();
 }
 
-static bool is_key_present(const unsigned long id, const string &s) {
-    return is_set_present(id) && encrypted[id].find(s) != encrypted[id].end();
+static inline bool is_value_present(const unsigned long id, const string &value) {
+    return is_set_present(id) && encrypted[id].find(value) != encrypted[id].end();
 }
 
 static void encrypt(string &s, const string &key) {
@@ -120,7 +139,7 @@ static void encrypt(string &s, const string &key) {
     }
 }
 
-static void rewrite(const char *src, string &dst) {
+static inline void rewrite(const char *src, string &dst) {
     if (src == nullptr) {
         dst = "";
     }
@@ -140,6 +159,68 @@ static string rewrite_and_encrypt_value(const char *value, const char *key) {
     return new_value;
 }
 
+static void handle_set_operation(const string &func_name, unsigned long id,
+                                 const string &info_if_set_present,
+                                 const string &info_if_set_absent,
+                                 set_func_t func_if_set_present) {
+    print_func_call_if_debug(func_name, id);
+
+    if (is_set_present(id)) {
+        func_if_set_present(id);
+        print_set_info_if_debug(func_name, id, info_if_set_present);
+    }
+    else {
+        print_set_info_if_debug(func_name, id, info_if_set_absent);
+    }
+}
+
+static bool handle_value_operation(const string &func_name, unsigned long id,
+                                   const char *value, const char *key,
+                                   const string &info_if_value_present,
+                                   const string &info_if_value_absent,
+                                   val_func_t func_if_value_present,
+                                   val_func_t func_if_value_absent,
+                                   bool res_if_value_present,
+                                   bool res_if_value_absent) {
+    print_func_call_if_debug(func_name, id, string_repr(value), string_repr(key));
+
+    if (value == nullptr) {
+        print_func_info_if_debug(func_name, ": invalid value (NULL)");
+        return false;
+    }
+    else if (!is_set_present(id)) {
+        print_set_info_if_debug(func_name, id, " does not exist");
+        return false;
+    }
+    else {
+        string new_value = rewrite_and_encrypt_value(value, key);
+
+        stringstream info;
+        info << ", " << cypher(new_value);
+
+        if (is_value_present(id, new_value)) {
+            if (func_if_value_present != nullptr) {
+                func_if_value_present(id, new_value);
+            }
+
+            info << info_if_value_present;
+            print_set_info_if_debug(func_name, id, info.str());
+
+            return res_if_value_present;
+        }
+        else {
+            if (func_if_value_absent != nullptr) {
+                func_if_value_absent(id, new_value);
+            }
+
+            info << info_if_value_absent;
+            print_set_info_if_debug(func_name, id, info.str());
+
+            return res_if_value_absent;
+        }
+    }
+}
+
 unsigned long encstrset_new() {
     print_func_call_if_debug("encstrset_new");
 
@@ -153,16 +234,8 @@ unsigned long encstrset_new() {
 }
 
 void encstrset_delete(unsigned long id) {
-    print_func_call_if_debug("encstrset_delete", id);
-
-    if (is_set_present(id)) {
-        encrypted.erase(id);
-        print_set_info_if_debug("encstrset_delete", id, " deleted");
-    }
-    else {
-        print_set_info_if_debug("encstrset_delete", id, " does not exist");
-    }
-
+    handle_set_operation("encstrset_delete", id, " deleted",
+                         " does not exist", erase_set);
     assert(!is_set_present(id));
 }
 
@@ -182,107 +255,25 @@ size_t encstrset_size(unsigned long id) {
 }
 
 bool encstrset_insert(unsigned long id, const char *value, const char *key) {
-    print_func_call_if_debug("encstrset_insert", id, string_repr(value),
-                             string_repr(key));
-
-    if (value == nullptr) {
-        print_func_info_if_debug("encstrset_insert", ": invalid value (NULL)");
-        return false;
-    }
-    else if (!is_set_present(id)) {
-        print_set_info_if_debug("encstrset_insert", id, " does not exist");
-        return false;
-    }
-    else {
-        string new_value = rewrite_and_encrypt_value(value, key);
-        stringstream info;
-        info << ", " << cypher(new_value);
-
-        if (is_key_present(id, new_value)) {
-            info << " was already present";
-            print_set_info_if_debug("encstrset_insert", id, info.str());
-            return false;
-        }
-        else {
-            encrypted[id].insert(new_value);
-            info << " inserted";
-            print_set_info_if_debug("encstrset_insert", id, info.str());
-            return true;
-        }
-    }
+    return handle_value_operation("encstrset_insert", id, value, key,
+                                  " was already present", " inserted", nullptr,
+                                  insert_value, false, true);
 }
 
 bool encstrset_remove(unsigned long id, const char *value, const char *key) {
-    print_func_call_if_debug("encstrset_remove", id, string_repr(value),
-                             string_repr(key));
-
-    if (value == nullptr) {
-        print_func_info_if_debug("encstrset_remove", ": invalid value (NULL)");
-        return false;
-    }
-    else if (!is_set_present(id)) {
-        print_set_info_if_debug("encstrset_remove", id, " does not exist");
-        return false;
-    }
-    else {
-        string new_value = rewrite_and_encrypt_value(value, key);
-        stringstream info;
-        info << ", " << cypher(new_value);
-
-        if (!is_key_present(id, new_value)) {
-            info << " was not present";
-            print_set_info_if_debug("encstrset_remove", id, info.str());
-            return false;
-        }
-        else {
-            encrypted[id].erase(new_value);
-            info << " removed";
-            print_set_info_if_debug("encstrset_remove", id, info.str());
-            return true;
-        }
-    }
+    return handle_value_operation("encstrset_remove", id, value, key, " removed",
+                                  " was not present", erase_value,
+                                  nullptr, true, false);
 }
 
 bool encstrset_test(unsigned long id, const char *value, const char *key) {
-    print_func_call_if_debug("encstrset_test", id, string_repr(value),
-                             string_repr(key));
-
-    if (value == nullptr) {
-        print_func_info_if_debug("encstrset_test", ": invalid value (NULL)");
-        return false;
-    }
-    else if (!is_set_present(id)) {
-        print_set_info_if_debug("encstrset_test", id, " does not exist");
-        return false;
-    }
-    else {
-        string new_value = rewrite_and_encrypt_value(value, key);
-        stringstream info;
-        info << ", " << cypher(new_value);
-
-        if (!is_key_present(id, new_value)) {
-            info << " is not present";
-            print_set_info_if_debug("encstrset_test", id, info.str());
-            return false;
-        }
-        else {
-            info << " is present";
-            print_set_info_if_debug("encstrset_test", id, info.str());
-            return true;
-        }
-    }
+    return handle_value_operation("encstrset_test", id, value, key, " is present",
+                                  " is not present", nullptr, nullptr, true, false);
 }
 
 void encstrset_clear(unsigned long id) {
-    print_func_call_if_debug("encstrset_clear", id);
-
-    if (!is_set_present(id)) {
-        print_set_info_if_debug("encstrset_clear", id, " does not exist");
-    }
-    else {
-        encrypted[id].clear();
-        print_set_info_if_debug("encstrset_clear", id, " cleared");
-    }
+    handle_set_operation("encstrset_clear", id, " cleared",
+                         " does not exist", clear_set);
 }
 
 void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
@@ -296,7 +287,7 @@ void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
     }
     else {
         for (const string &s : encrypted[src_id]) {
-            bool added = get<1>(encrypted[dst_id].insert(s));
+            bool added = encrypted[dst_id].insert(s).second;
 
             stringstream info;
             info << ": ";
