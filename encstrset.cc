@@ -226,87 +226,90 @@ namespace {
 
 }
 
-unsigned long encstrset_new() {
-    print_func_call_if_debug("encstrset_new");
+namespace jnp1 {
+    unsigned long encstrset_new() {
+        print_func_call_if_debug("encstrset_new");
 
-    unordered_set<string> new_set;
-    encrypted.insert(make_pair(added_sets, new_set));
+        unordered_set<string> new_set;
+        encrypted.insert(make_pair(added_sets, new_set));
 
-    assert(is_set_present(added_sets));
-    print_set_info_if_debug("encstrset_new", added_sets, " created");
+        assert(is_set_present(added_sets));
+        print_set_info_if_debug("encstrset_new", added_sets, " created");
 
-    return added_sets++;
-}
-
-void encstrset_delete(unsigned long id) {
-    handle_set_operation("encstrset_delete", id, " deleted",
-                         " does not exist", erase_set);
-    assert(!is_set_present(id));
-}
-
-size_t encstrset_size(unsigned long id) {
-    print_func_call_if_debug("encstrset_size", id);
-
-    if (!is_set_present(id)) {
-        print_set_info_if_debug("encstrset_size", id, " does not exist");
-        return 0;
+        return added_sets++;
     }
 
-    stringstream info;
-    info << "contains " << encrypted[id].size() << " element(s)";
-    print_set_info_if_debug("encstrset_size", id, info.str());
-
-    return encrypted[id].size();
-}
-
-bool encstrset_insert(unsigned long id, const char *value, const char *key) {
-    return handle_value_operation("encstrset_insert", id, value, key,
-                                  " was already present", " inserted", nullptr,
-                                  insert_value, false, true);
-}
-
-bool encstrset_remove(unsigned long id, const char *value, const char *key) {
-    return handle_value_operation("encstrset_remove", id, value, key, " removed",
-                                  " was not present", erase_value,
-                                  nullptr, true, false);
-}
-
-bool encstrset_test(unsigned long id, const char *value, const char *key) {
-    return handle_value_operation("encstrset_test", id, value, key, " is present",
-                                  " is not present", nullptr, nullptr, true, false);
-}
-
-void encstrset_clear(unsigned long id) {
-    handle_set_operation("encstrset_clear", id, " cleared",
-                         " does not exist", clear_set);
-}
-
-void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
-    print_func_call_if_debug("encstrset_copy", src_id, dst_id);
-
-    if (!is_set_present(src_id)) {
-        print_set_info_if_debug("encstrset_clear", src_id, " does not exist");
+    void encstrset_delete(unsigned long id) {
+        handle_set_operation("encstrset_delete", id, " deleted",
+                             " does not exist", erase_set);
+        assert(!is_set_present(id));
     }
-    else if (!is_set_present(dst_id)) {
-        print_set_info_if_debug("encstrset_clear", dst_id, " does not exist");
+
+    size_t encstrset_size(unsigned long id) {
+        print_func_call_if_debug("encstrset_size", id);
+
+        if (!is_set_present(id)) {
+            print_set_info_if_debug("encstrset_size", id, " does not exist");
+            return 0;
+        }
+
+        stringstream info;
+        info << "contains " << encrypted[id].size() << " element(s)";
+        print_set_info_if_debug("encstrset_size", id, info.str());
+
+        return encrypted[id].size();
     }
-    else {
-        for (const string &s : encrypted[src_id]) {
-            bool added = encrypted[dst_id].insert(s).second;
 
-            stringstream info;
-            info << ": ";
+    bool encstrset_insert(unsigned long id, const char *value, const char *key) {
+        return handle_value_operation("encstrset_insert", id, value, key,
+                                      " was already present", " inserted", nullptr,
+                                      insert_value, false, true);
+    }
 
-            if (added) {
-                info << cypher(s) << " copied from " << "set #" << src_id;
-                info << " to " << "set #" << dst_id;
+    bool encstrset_remove(unsigned long id, const char *value, const char *key) {
+        return handle_value_operation("encstrset_remove", id, value, key, " removed",
+                                      " was not present", erase_value,
+                                      nullptr, true, false);
+    }
+
+    bool encstrset_test(unsigned long id, const char *value, const char *key) {
+        return handle_value_operation("encstrset_test", id, value, key,
+                                      " is present", " is not present", nullptr,
+                                      nullptr, true, false);
+    }
+
+    void encstrset_clear(unsigned long id) {
+        handle_set_operation("encstrset_clear", id, " cleared",
+                             " does not exist", clear_set);
+    }
+
+    void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
+        print_func_call_if_debug("encstrset_copy", src_id, dst_id);
+
+        if (!is_set_present(src_id)) {
+            print_set_info_if_debug("encstrset_clear", src_id, " does not exist");
+        }
+        else if (!is_set_present(dst_id)) {
+            print_set_info_if_debug("encstrset_clear", dst_id, " does not exist");
+        }
+        else {
+            for (const string &s : encrypted[src_id]) {
+                bool added = encrypted[dst_id].insert(s).second;
+
+                stringstream info;
+                info << ": ";
+
+                if (added) {
+                    info << cypher(s) << " copied from " << "set #" << src_id;
+                    info << " to " << "set #" << dst_id;
+                }
+                else {
+                    info << " copied " << cypher(s);
+                    info << " was already present in " << "set #" << dst_id;
+                }
+
+                print_func_info_if_debug("encstrset_clear", info.str());
             }
-            else {
-                info << " copied " << cypher(s);
-                info << " was already present in " << "set #" << dst_id;
-            }
-
-            print_func_info_if_debug("encstrset_clear", info.str());
         }
     }
-}		
+}
