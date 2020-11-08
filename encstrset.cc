@@ -10,215 +10,220 @@
 #include <unordered_set>
 #include <unordered_map>
 
-using std::cerr;
-using std::endl;
-using std::setfill;
-using std::setw;
-using std::hex;
-using std::string;
-using std::stringstream;
-using std::pair;
-using std::make_pair;
-using std::unordered_set;
-using std::unordered_map;
+namespace {
+    using std::cerr;
+    using std::endl;
+    using std::setfill;
+    using std::setw;
+    using std::hex;
+    using std::string;
+    using std::stringstream;
+    using std::pair;
+    using std::make_pair;
+    using std::unordered_set;
+    using std::unordered_map;
 
-using set_func_t = void (*)(unsigned long);
-using val_func_t = void (*)(unsigned long, const string &);
-
-static unsigned long added_sets = 0;
-static unordered_map<unsigned long, unordered_set<string>> encrypted;
+    using set_func_t = void (*)(unsigned long);
+    using val_func_t = void (*)(unsigned long, const string &);
 
 #ifdef NDEBUG
-static constexpr bool debug = false;
+    constexpr bool debug = false;
 #else
-static constexpr bool debug = true;
+    constexpr bool debug = true;
 #endif
 
-static inline void print_func_call_if_debug(const string &func_name) {
-    if (debug) {
-        cerr << func_name << "()" << endl;
-    }
-}
+    unsigned long added_sets = 0;
+    unordered_map<unsigned long, unordered_set<string>> encrypted;
 
-static inline void print_func_call_if_debug(const string &func_name,
-                                            unsigned long id) {
-    if (debug) {
-        cerr << func_name << "(" << id << ")" << endl;
-    }
-}
-
-static inline void print_func_call_if_debug(const string &func_name,
-                                            unsigned long src_id,
-                                            unsigned long dst_id) {
-    if (debug) {
-        cerr << func_name << "(" << src_id << ", " << dst_id << ")" << endl;
-    }
-}
-
-static inline void print_func_call_if_debug(const string &func_name,
-                                            unsigned long id,
-                                            const string &value, const string &key) {
-    if (debug) {
-        cerr << func_name << "(" << id << ", " << value << ", " << key << ")"
-             << endl;
-    }
-}
-
-static inline void print_set_info_if_debug(const string &func_name,
-                                           unsigned long id, const string &info) {
-    if (debug) {
-        cerr << func_name << ": " << "set #" << id << info << endl;
-    }
-}
-
-static inline void print_func_info_if_debug(const string &func_name,
-                                            const string &info) {
-    if (debug) {
-        cerr << func_name << info << endl;
-    }
-}
-
-static inline string string_repr(const char *str) {
-    string enclosing = (str == nullptr ? "" : R"(")");
-    return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
-}
-
-static string cypher(const string &s) {
-    stringstream cyphered;
-    cyphered << "cypher ";
-    cyphered << '"';
-
-    size_t processed = 0;
-    for (int c : s) {
-        processed++;
-
-        cyphered << setfill('0') << setw(2) << hex << c / 16 << c % 16;
-        if (processed < s.length()) {
-            cyphered << " ";
+    inline void print_func_call_if_debug(const string &func_name) {
+        if (debug) {
+            cerr << func_name << "()" << endl;
         }
     }
 
-    cyphered << '"';
-    return cyphered.str();
-}
+    inline void print_func_call_if_debug(const string &func_name,
+                                         unsigned long id) {
+        if (debug) {
+            cerr << func_name << "(" << id << ")" << endl;
+        }
+    }
 
-static void clear_set(unsigned long id) {
-    encrypted[id].clear();
-}
+    inline void print_func_call_if_debug(const string &func_name,
+                                         unsigned long src_id,
+                                         unsigned long dst_id) {
+        if (debug) {
+            cerr << func_name << "(" << src_id << ", " << dst_id << ")" << endl;
+        }
+    }
 
-static void erase_set(unsigned long id) {
-    encrypted.erase(id);
-}
+    inline void print_func_call_if_debug(const string &func_name,
+                                         unsigned long id,
+                                         const string &value, const string &key) {
+        if (debug) {
+            cerr << func_name << "(" << id << ", " << value << ", " << key << ")"
+                 << endl;
+        }
+    }
 
-static void insert_value(unsigned long id, const string &value) {
-    encrypted[id].insert(value);
-}
+    inline void print_set_info_if_debug(const string &func_name,
+                                        unsigned long id, const string &info) {
+        if (debug) {
+            cerr << func_name << ": " << "set #" << id << info << endl;
+        }
+    }
 
-static void erase_value(unsigned long id, const string &value) {
-    encrypted[id].erase(value);
-}
+    inline void print_func_info_if_debug(const string &func_name,
+                                         const string &info) {
+        if (debug) {
+            cerr << func_name << info << endl;
+        }
+    }
 
-static inline bool is_set_present(const unsigned long id) {
-    return encrypted.find(id) != encrypted.end();
-}
+    inline string string_repr(const char *str) {
+        string enclosing = (str == nullptr ? "" : R"(")");
+        return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
+    }
 
-static inline bool is_value_present(const unsigned long id, const string &value) {
-    return is_set_present(id) && encrypted[id].find(value) != encrypted[id].end();
-}
+    string cypher(const string &s) {
+        stringstream cyphered;
+        cyphered << "cypher ";
+        cyphered << '"';
 
-static void encrypt(string &s, const string &key) {
-    if (!key.empty()) {
-        string::const_iterator key_iter = key.begin();
-        for (string::iterator iter = s.begin(); iter != s.end(); iter++) {
-            *iter ^= *key_iter;
-            key_iter++;
-            if (key_iter == key.end()) {
-                key_iter = key.begin();
+        size_t processed = 0;
+        for (int c : s) {
+            processed++;
+
+            cyphered << setfill('0') << setw(2) << hex << c / 16 << c % 16;
+            if (processed < s.length()) {
+                cyphered << " ";
+            }
+        }
+
+        cyphered << '"';
+        return cyphered.str();
+    }
+
+    void clear_set(unsigned long id) {
+        encrypted[id].clear();
+    }
+
+    void erase_set(unsigned long id) {
+        encrypted.erase(id);
+    }
+
+    void insert_value(unsigned long id, const string &value) {
+        encrypted[id].insert(value);
+    }
+
+    void erase_value(unsigned long id, const string &value) {
+        encrypted[id].erase(value);
+    }
+
+    inline bool is_set_present(const unsigned long id) {
+        return encrypted.find(id) != encrypted.end();
+    }
+
+    inline bool is_value_present(const unsigned long id, const string &value) {
+        return is_set_present(id) &&
+               encrypted[id].find(value) != encrypted[id].end();
+    }
+
+    void encrypt(string &s, const string &key) {
+        if (!key.empty()) {
+            string::const_iterator key_iter = key.begin();
+            for (string::iterator iter = s.begin(); iter != s.end(); iter++) {
+                *iter ^= *key_iter;
+                key_iter++;
+                if (key_iter == key.end()) {
+                    key_iter = key.begin();
+                }
             }
         }
     }
-}
 
-static inline void rewrite(const char *src, string &dst) {
-    if (src == nullptr) {
-        dst = "";
-    }
-    else {
-        dst = src;
-    }
-}
-
-static string rewrite_and_encrypt_value(const char *value, const char *key) {
-    string new_value;
-    rewrite(value, new_value);
-
-    string new_key;
-    rewrite(key, new_key);
-
-    encrypt(new_value, new_key);
-    return new_value;
-}
-
-static void handle_set_operation(const string &func_name, unsigned long id,
-                                 const string &info_if_set_present,
-                                 const string &info_if_set_absent,
-                                 set_func_t func_if_set_present) {
-    print_func_call_if_debug(func_name, id);
-
-    if (is_set_present(id)) {
-        func_if_set_present(id);
-        print_set_info_if_debug(func_name, id, info_if_set_present);
-    }
-    else {
-        print_set_info_if_debug(func_name, id, info_if_set_absent);
-    }
-}
-
-static bool handle_value_operation(const string &func_name, unsigned long id,
-                                   const char *value, const char *key,
-                                   const string &info_if_value_present,
-                                   const string &info_if_value_absent,
-                                   val_func_t func_if_value_present,
-                                   val_func_t func_if_value_absent,
-                                   bool res_if_value_present,
-                                   bool res_if_value_absent) {
-    print_func_call_if_debug(func_name, id, string_repr(value), string_repr(key));
-
-    if (value == nullptr) {
-        print_func_info_if_debug(func_name, ": invalid value (NULL)");
-        return false;
-    }
-    else if (!is_set_present(id)) {
-        print_set_info_if_debug(func_name, id, " does not exist");
-        return false;
-    }
-    else {
-        string new_value = rewrite_and_encrypt_value(value, key);
-
-        stringstream info;
-        info << ", " << cypher(new_value);
-
-        if (is_value_present(id, new_value)) {
-            if (func_if_value_present != nullptr) {
-                func_if_value_present(id, new_value);
-            }
-
-            info << info_if_value_present;
-            print_set_info_if_debug(func_name, id, info.str());
-
-            return res_if_value_present;
+    inline void rewrite(const char *src, string &dst) {
+        if (src == nullptr) {
+            dst = "";
         }
         else {
-            if (func_if_value_absent != nullptr) {
-                func_if_value_absent(id, new_value);
-            }
-
-            info << info_if_value_absent;
-            print_set_info_if_debug(func_name, id, info.str());
-
-            return res_if_value_absent;
+            dst = src;
         }
     }
+
+    string rewrite_and_encrypt_value(const char *value, const char *key) {
+        string new_value;
+        rewrite(value, new_value);
+
+        string new_key;
+        rewrite(key, new_key);
+
+        encrypt(new_value, new_key);
+        return new_value;
+    }
+
+    void handle_set_operation(const string &func_name, unsigned long id,
+                              const string &info_if_set_present,
+                              const string &info_if_set_absent,
+                              set_func_t func_if_set_present) {
+        print_func_call_if_debug(func_name, id);
+
+        if (is_set_present(id)) {
+            func_if_set_present(id);
+            print_set_info_if_debug(func_name, id, info_if_set_present);
+        }
+        else {
+            print_set_info_if_debug(func_name, id, info_if_set_absent);
+        }
+    }
+
+    bool handle_value_operation(const string &func_name, unsigned long id,
+                                const char *value, const char *key,
+                                const string &info_if_value_present,
+                                const string &info_if_value_absent,
+                                val_func_t func_if_value_present,
+                                val_func_t func_if_value_absent,
+                                bool res_if_value_present,
+                                bool res_if_value_absent) {
+        print_func_call_if_debug(func_name, id, string_repr(value),
+                                 string_repr(key));
+
+        if (value == nullptr) {
+            print_func_info_if_debug(func_name, ": invalid value (NULL)");
+            return false;
+        }
+        else if (!is_set_present(id)) {
+            print_set_info_if_debug(func_name, id, " does not exist");
+            return false;
+        }
+        else {
+            string new_value = rewrite_and_encrypt_value(value, key);
+
+            stringstream info;
+            info << ", " << cypher(new_value);
+
+            if (is_value_present(id, new_value)) {
+                if (func_if_value_present != nullptr) {
+                    func_if_value_present(id, new_value);
+                }
+
+                info << info_if_value_present;
+                print_set_info_if_debug(func_name, id, info.str());
+
+                return res_if_value_present;
+            }
+            else {
+                if (func_if_value_absent != nullptr) {
+                    func_if_value_absent(id, new_value);
+                }
+
+                info << info_if_value_absent;
+                print_set_info_if_debug(func_name, id, info.str());
+
+                return res_if_value_absent;
+            }
+        }
+    }
+
 }
 
 unsigned long encstrset_new() {
