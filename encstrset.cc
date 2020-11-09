@@ -25,25 +25,49 @@ namespace {
     using val_func_pair_t = std::pair<val_func_t, val_func_t>;
     using res_pair_t = std::pair<bool, bool>;
 
+    /** @brief Wrapper function of std::cerr.
+     * Initialise standard stream objects and return reference to std::cerr.
+     * Standard stream objects are only initialised at first invocation
+     * of the function.
+     * @return Reference to standard error stream @p std::cerr.
+     */
     std::ostream &cerr() {
         static std::ios_base::Init init;
         return std::cerr;
     }
 
+    /** @brief Wrapper function of the counter of sets added.
+     * Initialise counter of added sets and return reference to it.
+     * Counter is only initialised at first invocation of the function.
+     * @return Reference to counter of added sets.
+     */
     unsigned long &added_sets() {
         static unsigned long added_sets = 0;
         return added_sets;
     }
 
+    /** @brief Wrapper function of map storing sets by their identifiers.
+     * Initialise map storing sets by their identifiers and return reference to it.
+     * Map is only initialised at first invocation of the function.
+     * @return Reference to map storing sets by their identifiers.
+     */
     encrypted_t &encrypted() {
         static encrypted_t encrypted;
         return encrypted;
     }
 
+    /** @brief Wrapper function of string literal used to represent set
+     * in diagnostic messages.
+     * @return String literal used to represent set.
+     */
     inline string set_id_msg() {
         return "set #";
     }
 
+    /** @brief Wrapper function of string literal informing that set is not
+     * present, used in diagnostic messages.
+     * @return String literal used to inform that set is not present.
+     */
     inline string set_not_present_msg() {
         return " does not exist";
     }
@@ -60,15 +84,6 @@ namespace {
                                          unsigned long dst_id) {
         if (debug) {
             cerr() << func_name << "(" << src_id << ", " << dst_id << ")" << endl;
-        }
-    }
-
-    inline void print_func_call_if_debug(const string &func_name,
-                                         unsigned long id,
-                                         const string &value, const string &key) {
-        if (debug) {
-            cerr() << func_name << "(" << id << ", "
-                   << value << ", " << key << ")" << endl;
         }
     }
 
@@ -181,8 +196,10 @@ namespace {
                                 const msg_pair_t &msg_pair,
                                 const val_func_pair_t val_func_pair,
                                 const res_pair_t res_pair) {
-        print_func_call_if_debug(func_name, id,
-                                 string_repr(value), string_repr(key));
+        if (debug) {
+            cerr() << func_name << "(" << id << ", "
+                   << value << ", " << key << ")" << endl;
+        }
 
         if (value == nullptr) {
             print_func_msg_if_debug(func_name, ": invalid value (NULL)");
