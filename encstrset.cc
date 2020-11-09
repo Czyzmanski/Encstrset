@@ -3,7 +3,6 @@
  * najebanie komów
  */
 
-#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -241,7 +240,6 @@ namespace jnp1 {
         std::unordered_set<string> new_set;
         encrypted().insert(std::make_pair(added_sets(), new_set));
 
-        assert(is_set_present(added_sets()));
         print_set_info_if_debug("encstrset_new", added_sets(), " created");
 
         return added_sets()++;
@@ -250,7 +248,6 @@ namespace jnp1 {
     void encstrset_delete(unsigned long id) {
         handle_set_operation("encstrset_delete", id,
                              " deleted", " does not exist", erase_set);
-        assert(!is_set_present(id));
     }
 
     size_t encstrset_size(unsigned long id) {
@@ -276,8 +273,8 @@ namespace jnp1 {
 
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_remove", id, value, key,
-                                      " removed", " was not present", erase_value,
-                                      nullptr, true, false);
+                                      " removed", " was not present",
+                                      erase_value, nullptr, true, false);
     }
 
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
