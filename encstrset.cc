@@ -12,47 +12,47 @@
 
 #include "encstrset.h"
 
+#ifdef NDEBUG
+static constexpr bool debug = false;
+#else
+static constexpr bool debug = true;
+#endif
+
 namespace {
-    using std::cerr;
     using std::endl;
-    using std::hex;
-    using std::uppercase;
     using std::string;
     using std::stringstream;
-    using std::pair;
-    using std::make_pair;
-    using std::unordered_set;
-    using std::unordered_map;
+
+    using encrypted_t = std::unordered_map<unsigned long, std::unordered_set<string>>;
 
     using set_func_t = void (*)(unsigned long);
     using val_func_t = void (*)(unsigned long, const string &);
 
-#ifdef NDEBUG
-    constexpr bool debug = false;
-#else
-    constexpr bool debug = true;
-#endif
+    std::ostream &cerr() {
+        static std::ios_base::Init init;
+        return std::cerr;
+    }
 
     unsigned long &added_sets() {
         static unsigned long added_sets = 0;
         return added_sets;
     }
 
-    unordered_map<unsigned long, unordered_set<string>> &encrypted() {
-        static unordered_map<unsigned long, unordered_set<string>> encrypted;
+    encrypted_t &encrypted() {
+        static encrypted_t encrypted;
         return encrypted;
     }
 
     inline void print_func_call_if_debug(const string &func_name) {
         if (debug) {
-            cerr << func_name << "()" << endl;
+            cerr() << func_name << "()" << endl;
         }
     }
 
     inline void print_func_call_if_debug(const string &func_name,
                                          unsigned long id) {
         if (debug) {
-            cerr << func_name << "(" << id << ")" << endl;
+            cerr() << func_name << "(" << id << ")" << endl;
         }
     }
 
@@ -60,7 +60,7 @@ namespace {
                                          unsigned long src_id,
                                          unsigned long dst_id) {
         if (debug) {
-            cerr << func_name << "(" << src_id << ", " << dst_id << ")" << endl;
+            cerr() << func_name << "(" << src_id << ", " << dst_id << ")" << endl;
         }
     }
 
@@ -68,22 +68,22 @@ namespace {
                                          unsigned long id,
                                          const string &value, const string &key) {
         if (debug) {
-            cerr << func_name << "(" << id << ", " << value << ", " << key << ")"
-                 << endl;
+            cerr() << func_name << "(" << id << ", "
+                 << value << ", " << key << ")" << endl;
         }
     }
 
     inline void print_set_info_if_debug(const string &func_name,
                                         unsigned long id, const string &info) {
         if (debug) {
-            cerr << func_name << ": " << "set #" << id << info << endl;
+            cerr() << func_name << ": " << "set #" << id << info << endl;
         }
     }
 
     inline void print_func_info_if_debug(const string &func_name,
                                          const string &info) {
         if (debug) {
-            cerr << func_name << info << endl;
+            cerr() << func_name << info << endl;
         }
     }
 
@@ -101,7 +101,7 @@ namespace {
         for (int c : s) {
             processed++;
 
-            cyphered << uppercase << hex << c / 16 << c % 16;
+            cyphered << std::uppercase << std::hex << c / 16 << c % 16;
             if (processed < s.length()) {
                 cyphered << " ";
             }
@@ -238,8 +238,8 @@ namespace jnp1 {
     unsigned long encstrset_new() {
         print_func_call_if_debug("encstrset_new");
 
-        unordered_set<string> new_set;
-        encrypted().insert(make_pair(added_sets(), new_set));
+        std::unordered_set<string> new_set;
+        encrypted().insert(std::make_pair(added_sets(), new_set));
 
         assert(is_set_present(added_sets()));
         print_set_info_if_debug("encstrset_new", added_sets(), " created");
