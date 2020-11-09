@@ -1,8 +1,3 @@
-/*TODO: 
- * zmiania using namespace i bibliotek
- * najebanie komów
- */
-
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -40,12 +35,6 @@ namespace {
     encrypted_t &encrypted() {
         static encrypted_t encrypted;
         return encrypted;
-    }
-
-    inline void print_func_call_if_debug(const string &func_name) {
-        if (debug) {
-            cerr() << func_name << "()" << endl;
-        }
     }
 
     inline void print_func_call_if_debug(const string &func_name,
@@ -118,8 +107,7 @@ namespace {
 
     string cypher(const string &s) {
         stringstream cyphered;
-        cyphered << "cypher ";
-        cyphered << '"';
+        cyphered << "cypher " << '"';
 
         size_t processed = 0;
         for (int c : s) {
@@ -235,7 +223,9 @@ namespace {
 
 namespace jnp1 {
     unsigned long encstrset_new() {
-        print_func_call_if_debug("encstrset_new");
+        if (debug) {
+            cerr() << "encstrset_new" << "()" << endl;
+        }
 
         std::unordered_set<string> new_set;
         encrypted().insert(std::make_pair(added_sets(), new_set));
@@ -260,6 +250,7 @@ namespace jnp1 {
 
         stringstream info;
         info << " contains " << encrypted()[id].size() << " element(s)";
+
         print_set_info_if_debug("encstrset_size", id, info.str());
 
         return encrypted()[id].size();
@@ -305,12 +296,12 @@ namespace jnp1 {
                 info << ": ";
 
                 if (added) {
-                    info << cypher(s) << " copied from " << "set #" << src_id;
-                    info << " to " << "set #" << dst_id;
+                    info << cypher(s) << " copied from " << "set #"
+                         << src_id << " to " << "set #" << dst_id;
                 }
                 else {
-                    info << "copied " << cypher(s);
-                    info << " was already present in " << "set #" << dst_id;
+                    info << "copied " << cypher(s)
+                         << " was already present in " << "set #" << dst_id;
                 }
 
                 print_func_info_if_debug("encstrset_copy", info.str());

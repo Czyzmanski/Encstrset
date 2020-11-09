@@ -4,7 +4,7 @@
 #ifdef __cplusplus
 #include <cstdio>
 #else
-#include <stdio.h>
+#include <stddef.h>
 #include <stdbool.h>
 #endif
 
