@@ -17,10 +17,13 @@ namespace {
     using std::string;
     using std::stringstream;
 
-    using encrypted_t = std::unordered_map<unsigned long, std::unordered_set<string>>;
-
     using set_func_t = void (*)(unsigned long);
     using val_func_t = void (*)(unsigned long, const string &);
+
+    using encrypted_t = std::unordered_map<unsigned long, std::unordered_set<string>>;
+    using info_pair_t = std::pair<string, string>;
+    using val_func_pair_t = std::pair<val_func_t, val_func_t>;
+    using res_pair_t = std::pair<bool, bool>;
 
     std::ostream &cerr() {
         static std::ios_base::Init init;
@@ -152,28 +155,24 @@ namespace {
     }
 
     void handle_set_operation(const string &func_name, unsigned long id,
-                              const string &info_if_set_present,
-                              const string &info_if_set_absent,
+                              const info_pair_t &info_pair,
                               set_func_t func_if_set_present) {
         print_func_call_if_debug(func_name, id);
 
         if (is_set_present(id)) {
             func_if_set_present(id);
-            print_set_info_if_debug(func_name, id, info_if_set_present);
+            print_set_info_if_debug(func_name, id, info_pair.first);
         }
         else {
-            print_set_info_if_debug(func_name, id, info_if_set_absent);
+            print_set_info_if_debug(func_name, id, info_pair.second);
         }
     }
 
     bool handle_value_operation(const string &func_name, unsigned long id,
                                 const char *value, const char *key,
-                                const string &info_if_value_present,
-                                const string &info_if_value_absent,
-                                val_func_t func_if_value_present,
-                                val_func_t func_if_value_absent,
-                                bool res_if_value_present,
-                                bool res_if_value_absent) {
+                                const info_pair_t &info_pair,
+                                const val_func_pair_t val_func_pair,
+                                const res_pair_t res_pair) {
         print_func_call_if_debug(func_name, id,
                                  string_repr(value), string_repr(key));
 
@@ -192,24 +191,24 @@ namespace {
             info << ", " << cypher(new_value);
 
             if (is_value_present(id, new_value)) {
-                if (func_if_value_present != nullptr) {
-                    func_if_value_present(id, new_value);
+                if (val_func_pair.first != nullptr) {
+                    val_func_pair.first(id, new_value);
                 }
 
-                info << info_if_value_present;
+                info << info_pair.first;
                 print_set_info_if_debug(func_name, id, info.str());
 
-                return res_if_value_present;
+                return res_pair.first;
             }
             else {
-                if (func_if_value_absent != nullptr) {
-                    func_if_value_absent(id, new_value);
+                if (val_func_pair.second != nullptr) {
+                    val_func_pair.second(id, new_value);
                 }
 
-                info << info_if_value_absent;
+                info << info_pair.second;
                 print_set_info_if_debug(func_name, id, info.str());
 
-                return res_if_value_absent;
+                return res_pair.second;
             }
         }
     }
@@ -223,7 +222,7 @@ namespace jnp1 {
         }
 
         std::unordered_set<string> new_set;
-        encrypted().insert(std::make_pair(added_sets(), new_set));
+        encrypted().insert({added_sets(), new_set});
 
         print_set_info_if_debug("encstrset_new", added_sets(), " created");
 
@@ -232,7 +231,7 @@ namespace jnp1 {
 
     void encstrset_delete(unsigned long id) {
         handle_set_operation("encstrset_delete", id,
-                             " deleted", " does not exist", erase_set);
+                             {" deleted", " does not exist"}, erase_set);
     }
 
     size_t encstrset_size(unsigned long id) {
@@ -253,25 +252,25 @@ namespace jnp1 {
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_insert", id, value, key,
-                                      " was already present", " inserted",
-                                      nullptr, insert_value, false, true);
+                                      {" was already present", " inserted"},
+                                      {nullptr, insert_value}, {false, true});
     }
 
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_remove", id, value, key,
-                                      " removed", " was not present",
-                                      erase_value, nullptr, true, false);
+                                      {" removed", " was not present"},
+                                      {erase_value, nullptr}, {true, false});
     }
 
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_test", id, value, key,
-                                      " is present", " is not present",
-                                      nullptr, nullptr, true, false);
+                                      {" is present", " is not present"},
+                                      {nullptr, nullptr}, {true, false});
     }
 
     void encstrset_clear(unsigned long id) {
         handle_set_operation("encstrset_clear", id,
-                             " cleared", " does not exist", clear_set);
+                             {" cleared", " does not exist"}, clear_set);
     }
 
     void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
