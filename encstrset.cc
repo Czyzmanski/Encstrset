@@ -69,7 +69,7 @@ namespace {
                                          const string &value, const string &key) {
         if (debug) {
             cerr() << func_name << "(" << id << ", "
-                 << value << ", " << key << ")" << endl;
+                   << value << ", " << key << ")" << endl;
         }
     }
 
@@ -192,8 +192,8 @@ namespace {
                                 val_func_t func_if_value_absent,
                                 bool res_if_value_present,
                                 bool res_if_value_absent) {
-        print_func_call_if_debug(func_name, id, string_repr(value),
-                                 string_repr(key));
+        print_func_call_if_debug(func_name, id,
+                                 string_repr(value), string_repr(key));
 
         if (value == nullptr) {
             print_func_info_if_debug(func_name, ": invalid value (NULL)");
@@ -248,8 +248,8 @@ namespace jnp1 {
     }
 
     void encstrset_delete(unsigned long id) {
-        handle_set_operation("encstrset_delete", id, " deleted",
-                             " does not exist", erase_set);
+        handle_set_operation("encstrset_delete", id,
+                             " deleted", " does not exist", erase_set);
         assert(!is_set_present(id));
     }
 
@@ -270,25 +270,25 @@ namespace jnp1 {
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_insert", id, value, key,
-                                      " was already present", " inserted", nullptr,
-                                      insert_value, false, true);
+                                      " was already present", " inserted",
+                                      nullptr, insert_value, false, true);
     }
 
     bool encstrset_remove(unsigned long id, const char *value, const char *key) {
-        return handle_value_operation("encstrset_remove", id, value, key, " removed",
-                                      " was not present", erase_value,
+        return handle_value_operation("encstrset_remove", id, value, key,
+                                      " removed", " was not present", erase_value,
                                       nullptr, true, false);
     }
 
     bool encstrset_test(unsigned long id, const char *value, const char *key) {
         return handle_value_operation("encstrset_test", id, value, key,
-                                      " is present", " is not present", nullptr,
-                                      nullptr, true, false);
+                                      " is present", " is not present",
+                                      nullptr, nullptr, true, false);
     }
 
     void encstrset_clear(unsigned long id) {
-        handle_set_operation("encstrset_clear", id, " cleared",
-                             " does not exist", clear_set);
+        handle_set_operation("encstrset_clear", id,
+                             " cleared", " does not exist", clear_set);
     }
 
     void encstrset_copy(unsigned long src_id, unsigned long dst_id) {
