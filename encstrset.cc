@@ -86,30 +86,6 @@ namespace {
         }
     }
 
-    inline string string_repr(const char *str) {
-        string enclosing = (str == nullptr ? "" : R"(")");
-        return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
-    }
-
-    string cypher(const string &s) {
-        stringstream cyphered;
-        cyphered << "cypher ";
-        cyphered << '"';
-
-        size_t processed = 0;
-        for (int c : s) {
-            processed++;
-
-            cyphered << std::uppercase << std::hex << c / 16 << c % 16;
-            if (processed < s.length()) {
-                cyphered << " ";
-            }
-        }
-
-        cyphered << '"';
-        return cyphered.str();
-    }
-
     void clear_set(unsigned long id) {
         encrypted()[id].clear();
     }
@@ -133,6 +109,30 @@ namespace {
     inline bool is_value_present(const unsigned long id, const string &value) {
         return is_set_present(id) &&
                encrypted()[id].find(value) != encrypted()[id].end();
+    }
+
+    inline string string_repr(const char *str) {
+        string enclosing = (str == nullptr ? "" : R"(")");
+        return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
+    }
+
+    string cypher(const string &s) {
+        stringstream cyphered;
+        cyphered << "cypher ";
+        cyphered << '"';
+
+        size_t processed = 0;
+        for (int c : s) {
+            processed++;
+
+            cyphered << std::uppercase << std::hex << c / 16 << c % 16;
+            if (processed < s.length()) {
+                cyphered << " ";
+            }
+        }
+
+        cyphered << '"';
+        return cyphered.str();
     }
 
     void encrypt(string &s, const string &key) {
