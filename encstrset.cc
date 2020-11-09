@@ -123,37 +123,32 @@ namespace {
         return cyphered.str();
     }
 
-    void encrypt(string &s, const string &key) {
-        if (!key.empty()) {
-            string::const_iterator key_iter = key.begin();
-            for (string::iterator iter = s.begin(); iter != s.end(); iter++) {
-                *iter ^= *key_iter;
-                key_iter++;
-                if (key_iter == key.end()) {
-                    key_iter = key.begin();
-                }
-            }
+    string encrypt_value(const char *value, const char *key) {
+        if (value == nullptr) {
+            return "";
         }
-    }
-
-    inline void rewrite(const char *src, string &dst) {
-        if (src == nullptr) {
-            dst = "";
+        else if (key == nullptr) {
+            return string(value);
         }
         else {
-            dst = src;
+            string enc_value = value;
+            const string key_str = key;
+
+            if (!key_str.empty()) {
+                string::iterator iter = enc_value.begin();
+                string::const_iterator key_iter = key_str.begin();
+
+                while (iter != enc_value.end()) {
+                    *iter++ ^= *key_iter++;
+
+                    if (key_iter == key_str.end()) {
+                        key_iter = key_str.begin();
+                    }
+                }
+            }
+
+            return enc_value;
         }
-    }
-
-    string rewrite_and_encrypt_value(const char *value, const char *key) {
-        string new_value;
-        rewrite(value, new_value);
-
-        string new_key;
-        rewrite(key, new_key);
-
-        encrypt(new_value, new_key);
-        return new_value;
     }
 
     void handle_set_operation(const string &func_name, unsigned long id,
@@ -191,7 +186,7 @@ namespace {
             return false;
         }
         else {
-            string new_value = rewrite_and_encrypt_value(value, key);
+            string new_value = encrypt_value(value, key);
 
             stringstream info;
             info << ", " << cypher(new_value);
