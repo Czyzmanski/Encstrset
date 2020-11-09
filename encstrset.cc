@@ -15,9 +15,8 @@
 namespace {
     using std::cerr;
     using std::endl;
-    using std::setfill;
-    using std::setw;
     using std::hex;
+    using std::uppercase;
     using std::string;
     using std::stringstream;
     using std::pair;
@@ -102,7 +101,7 @@ namespace {
         for (int c : s) {
             processed++;
 
-            cyphered << setfill('0') << setw(2) << hex << c / 16 << c % 16;
+            cyphered << uppercase << hex << c / 16 << c % 16;
             if (processed < s.length()) {
                 cyphered << " ";
             }
@@ -263,7 +262,7 @@ namespace jnp1 {
         }
 
         stringstream info;
-        info << "contains " << encrypted()[id].size() << " element(s)";
+        info << " contains " << encrypted()[id].size() << " element(s)";
         print_set_info_if_debug("encstrset_size", id, info.str());
 
         return encrypted()[id].size();
@@ -296,10 +295,10 @@ namespace jnp1 {
         print_func_call_if_debug("encstrset_copy", src_id, dst_id);
 
         if (!is_set_present(src_id)) {
-            print_set_info_if_debug("encstrset_clear", src_id, " does not exist");
+            print_set_info_if_debug("encstrset_copy", src_id, " does not exist");
         }
         else if (!is_set_present(dst_id)) {
-            print_set_info_if_debug("encstrset_clear", dst_id, " does not exist");
+            print_set_info_if_debug("encstrset_copy", dst_id, " does not exist");
         }
         else {
             for (const string &s : encrypted()[src_id]) {
@@ -313,11 +312,11 @@ namespace jnp1 {
                     info << " to " << "set #" << dst_id;
                 }
                 else {
-                    info << " copied " << cypher(s);
+                    info << "copied " << cypher(s);
                     info << " was already present in " << "set #" << dst_id;
                 }
 
-                print_func_info_if_debug("encstrset_clear", info.str());
+                print_func_info_if_debug("encstrset_copy", info.str());
             }
         }
     }
