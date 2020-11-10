@@ -17,13 +17,37 @@ namespace {
     using std::string;
     using std::stringstream;
 
+    /**
+     * Funtion used to perform operation on set with given id.
+     */
     using set_func_t = void (*)(unsigned long);
+    /**
+     * Function used to perform operation on passed encrypted value and set with
+     * given id.
+     */
     using val_func_t = void (*)(unsigned long, const string &);
-
+    /**
+     * Unordered set storing @p string objects representing encrypted values.
+     */
     using enc_set_t = std::unordered_set<string>;
+    /**
+     * Unordered map storing @p enc_set_t objects by their ids.
+     */
     using id_to_enc_set_t = std::unordered_map<unsigned long, enc_set_t>;
+    /**
+     * Pair storing @p string objects, representing diagnostic messages
+     * printed if debug mode is on.
+     */
     using msg_pair_t = std::pair<string, string>;
+    /**
+     * Pair storing @p val_func_t pointers to functions performing operations
+     * on given value and specified set.
+     */
     using val_func_pair_t = std::pair<val_func_t, val_func_t>;
+    /**
+     * Pair storing @p bool objects to be returned when handling value operation
+     * with given set.
+     */
     using res_pair_t = std::pair<bool, bool>;
 
     /** @brief Wrapper function of std::cerr.
@@ -122,18 +146,45 @@ namespace {
         }
     }
 
+    /** @brief Wrapper function of @p enc_set_t member function @p clear.
+     * Invoke member function @p clear on @p enc_set_t set with given id passed,
+     * which clears set with given identifier.
+     * Function assumes that set with given id exists.
+     * @param id - identifier of a set whose member function @p clear is
+     *             to be called.
+     */
     void clear_set(unsigned long id) {
         id_to_enc_set()[id].clear();
     }
 
+    /** @brief Wrapper function of @p id_to_enc_set_t member function @p erase.
+     * Invoke member function @p erase on @p id_to_enc_set_t map with @p id passed,
+     * which removes set with given identifier from the map.
+     * Function assumes that set with given id exists.
+     * @param id - identifier of a set to be erased.
+     */
     void erase_set(unsigned long id) {
         id_to_enc_set().erase(id);
     }
 
+    /** @brief Wrapper function of @p enc_set_t member function @p insert.
+     * Invoke member function @p insert on @p enc_set_t set with @p value passed,
+     * which inserts given value to set with specified id.
+     * Function assumes that set with given id exists.
+     * @param id - identifier of a set where passed value is to be inserted.
+     * @param value - value to be inserted.
+     */
     void insert_value(unsigned long id, const string &value) {
         id_to_enc_set()[id].insert(value);
     }
 
+    /** @brief Wrapper function of @p enc_set_t member function @p erase.
+     * Invoke member function @p erase on @p enc_set_t set with @p value passed,
+     * which removed given value from the set with specified id.
+     * Function assumes that set with given id exists and contains specified value.
+     * @param id - identifier of a set from where passed value is to be removed.
+     * @param value - value to be removed.
+     */
     void erase_value(unsigned long id, const string &value) {
         id_to_enc_set()[id].erase(value);
     }
@@ -169,16 +220,25 @@ namespace {
         return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
     }
 
-    string cypher(const string &s) {
+    /** @brief Create cyphered version of passed string.
+     * Create new string @p cyphered_string where each character of the original
+     * string is replaced with its hexadecimal representation of length two
+     * and there are spaces inserted between any two consecutive characters
+     * from the original string.
+     * @param str - string to cypher.
+     * @return Cyphered version of passed string in the form
+     * @p cypher "cyphered_string".
+     */
+    string cypher(const string &str) {
         stringstream cyphered;
         cyphered << "cypher " << '"';
 
         size_t processed = 0;
-        for (int c : s) {
+        for (int c : str) {
             processed++;
 
             cyphered << std::uppercase << std::hex << c / 16 << c % 16;
-            if (processed < s.length()) {
+            if (processed < str.length()) {
                 cyphered << " ";
             }
         }
@@ -187,6 +247,19 @@ namespace {
         return cyphered.str();
     }
 
+    /** @brief Encrypt passed value with given key.
+     * Create new string object whose content is passed value encrypted with
+     * given key. Encryption is symmetric and is done by XOR operation. If given
+     * key is shorter than the value, it is cyclically repeated. If given value
+     * is @p nullptr, empty string is returned. If given key is @p nullptr or
+     * is an empty string, no encryption is performed and copy of the passed value
+     * is returned.
+     * @param value - C-style string representing value to be encrypted.
+     * @param key - C-style string representing key to be used in encryption.
+     * @return @p string object whose content is passed value encrypted with given
+     * key or empty string if passed value is @p nullptr or string object copy
+     * of the passed value if given key is empty or is @p nullptr.
+     */
     string encrypt_value(const char *value, const char *key) {
         if (value == nullptr) {
             return "";
@@ -215,6 +288,20 @@ namespace {
         }
     }
 
+    /** @brief Perform specified set operation and print diagnostic messages
+     * if debug mode is on.
+     * Print function call that invoked this function if debug mode is on.
+     * Check if set with given is present. If so, perform specified operation
+     * and print appropriate diagnostic message if debug mode is on. Otherwise,
+     * only print appropriate diagnostic message if debug mode is on.
+     * @param func_name - name of the function that invoked this function.
+     * @param id - identifier of a set on which operation is to be performed.
+     * @param msg_pair - @p msg_pair_t pair carrying diagnostic string messages
+     *                   to be printed if debug mode is on: first one if set
+     *                   exists, second one if set does not exist.
+     * @param func_if_set_present - @p set_func_t pointer to function performing
+     *                              operation on set with given id.
+     */
     void handle_set_operation(const string &func_name, unsigned long id,
                               const msg_pair_t &msg_pair,
                               set_func_t func_if_set_present) {
@@ -229,6 +316,39 @@ namespace {
         }
     }
 
+    /** @brief Perform specified value operations and print diagnostic messages
+     * if debug mode is on.
+     * Print function call that invoked this function if debug mode is on.
+     * Perform appropriate value operation, print appropriate diagnostic message
+     * (if debug mode is on) and return appropriate value based if passed value
+     * is present in the set with given id.
+     * @param func_name - name of the function that invoked this function.
+     * @param id - identifier of a set on which value operation is to be
+     *             performed.
+     * @param value - value on which operation is to be performed.
+     * @param key - key used to encrypt passed value.
+     * @param msg_pair - @p msg_pair_t pair carrying diagnostic string messages
+     *                   to be printed if debug mode is on: first one if passed
+     *                   value is valid C-style string and set with given id
+     *                   exists and contains encrypted value, second one if above
+     *                   conditions are true except that set with given id does not
+     *                   contain encrypted value.
+     * @param val_func_pair - @p val_func_pair_t pair carrying @p val_func_t
+     *                        pointers to functions to be called, performing value
+     *                        operations: first one if passed value is valid C-style
+     *                        string and set with given id exists and contains
+     *                        encrypted value, second one if above conditions
+     *                        are true, except that set with given id does not
+     *                        contain encrypted value.
+     * @param res_pair - @p res_pair_t pair carrying return results of type @p bool:
+     *                   first one if passed value is valid C-style string and set
+     *                   with given id exists and contains encrypted value, second
+     *                   one if above conditions are true, except that set with
+     *                   given id does not contain encrypted value.
+     * @return @p false if @p value is @p nullptr or set with given id does not
+     * exist, otherwise @p res_pair.first when set with given id contains
+     * encrypted value, otherwise @p res_pair.second.
+     */
     bool handle_value_operation(const string &func_name, unsigned long id,
                                 const char *value, const char *key,
                                 const msg_pair_t &msg_pair,
