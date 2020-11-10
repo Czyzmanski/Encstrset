@@ -20,7 +20,8 @@ namespace {
     using set_func_t = void (*)(unsigned long);
     using val_func_t = void (*)(unsigned long, const string &);
 
-    using encrypted_t = std::unordered_map<unsigned long, std::unordered_set<string>>;
+    using enc_set_t = std::unordered_set<string>;
+    using id_to_enc_set_t = std::unordered_map<unsigned long, enc_set_t>;
     using msg_pair_t = std::pair<string, string>;
     using val_func_pair_t = std::pair<val_func_t, val_func_t>;
     using res_pair_t = std::pair<bool, bool>;
@@ -51,9 +52,9 @@ namespace {
      * Map is only initialised at first invocation of the function.
      * @return Reference to map storing sets by their identifiers.
      */
-    encrypted_t &encrypted() {
-        static encrypted_t encrypted;
-        return encrypted;
+    id_to_enc_set_t &id_to_enc_set() {
+        static id_to_enc_set_t id_to_enc_set;
+        return id_to_enc_set;
     }
 
     /** @brief Wrapper function of string literal used to represent set
@@ -72,6 +73,10 @@ namespace {
         return " does not exist";
     }
 
+    /** @brief Print function call if debug mode is on.
+     * @param func_name - name of the called function to print.
+     * @param id - set identifier passed to function @p func_name.
+     */
     inline void print_func_call_if_debug(const string &func_name,
                                          unsigned long id) {
         if (debug) {
@@ -79,6 +84,13 @@ namespace {
         }
     }
 
+    /** @brief Print function call if debug mode is on.
+     * @param func_name - name of the called function to print.
+     * @param src_id - set id passed to function @p func_name from where
+     *                 encrypted values are copied.
+     * @param dst_id - set id passed to fucntion @p func_name where encrypted
+     *                 values are copied to.
+     */
     inline void print_func_call_if_debug(const string &func_name,
                                          unsigned long src_id,
                                          unsigned long dst_id) {
@@ -87,6 +99,11 @@ namespace {
         }
     }
 
+    /** @brief Print message when performing set operation.
+     * @param func_name - name of the function where set operation is performed.
+     * @param id - set identifier.
+     * @param msg - message to print.
+     */
     inline void print_set_msg_if_debug(const string &func_name,
                                        unsigned long id, const string &msg) {
         if (debug) {
@@ -94,6 +111,10 @@ namespace {
         }
     }
 
+    /** @brief Print message when invoking function.
+     * @param func_name - name of the invoked function.
+     * @param msg - message to print.
+     */
     inline void print_func_msg_if_debug(const string &func_name,
                                         const string &msg) {
         if (debug) {
@@ -102,30 +123,47 @@ namespace {
     }
 
     void clear_set(unsigned long id) {
-        encrypted()[id].clear();
+        id_to_enc_set()[id].clear();
     }
 
     void erase_set(unsigned long id) {
-        encrypted().erase(id);
+        id_to_enc_set().erase(id);
     }
 
     void insert_value(unsigned long id, const string &value) {
-        encrypted()[id].insert(value);
+        id_to_enc_set()[id].insert(value);
     }
 
     void erase_value(unsigned long id, const string &value) {
-        encrypted()[id].erase(value);
+        id_to_enc_set()[id].erase(value);
     }
 
+    /** @brief Check if set with given id is present.
+     * @param id - identifier of a set whose presence it to be checked.
+     * @return @p true if set with given id is present, @p false otherwise.
+     */
     inline bool is_set_present(const unsigned long id) {
-        return encrypted().find(id) != encrypted().end();
+        return id_to_enc_set().find(id) != id_to_enc_set().end();
     }
 
-    inline bool is_value_present(const unsigned long id, const string &value) {
+    /** @brief Check if given encrypted value is present in the set with given id.
+     * @param id - identifier of a set where given encrypted value is to be
+     *             searched.
+     * @param enc_value - encrypted value to be searched.
+     * @return @p true if set with given id exists and contains passed encrypted
+     * value, @p false otherwise.
+     */
+    inline bool is_value_present(const unsigned long id, const string &enc_value) {
         return is_set_present(id) &&
-               encrypted()[id].find(value) != encrypted()[id].end();
+               id_to_enc_set()[id].find(enc_value) != id_to_enc_set()[id].end();
     }
 
+    /** @brief Create C++ string representation understandable by the compiler
+     * of passed C-style string.
+     * @param str - C-style string whose representation is to be created.
+     * @return string object of the form "str" if @p str is not @p nullptr,
+     * "NULL" otherwise.
+     */
     inline string string_repr(const char *str) {
         string enclosing = (str == nullptr ? "" : R"(")");
         return enclosing + (str == nullptr ? "NULL" : str) + enclosing;
@@ -198,7 +236,7 @@ namespace {
                                 const res_pair_t res_pair) {
         if (debug) {
             cerr() << func_name << "(" << id << ", "
-                   << value << ", " << key << ")" << endl;
+                   << string_repr(value) << ", " << string_repr(key) << ")" << endl;
         }
 
         if (value == nullptr) {
@@ -247,7 +285,7 @@ namespace jnp1 {
         }
 
         std::unordered_set<string> new_set;
-        encrypted().insert({added_sets(), new_set});
+        id_to_enc_set().insert({added_sets(), new_set});
 
         print_set_msg_if_debug("encstrset_new", added_sets(), " created");
 
@@ -268,11 +306,11 @@ namespace jnp1 {
         }
 
         stringstream msg;
-        msg << " contains " << encrypted()[id].size() << " element(s)";
+        msg << " contains " << id_to_enc_set()[id].size() << " element(s)";
 
         print_set_msg_if_debug("encstrset_size", id, msg.str());
 
-        return encrypted()[id].size();
+        return id_to_enc_set()[id].size();
     }
 
     bool encstrset_insert(unsigned long id, const char *value, const char *key) {
@@ -308,8 +346,8 @@ namespace jnp1 {
             print_set_msg_if_debug("encstrset_copy", dst_id, set_not_present_msg());
         }
         else {
-            for (const string &s : encrypted()[src_id]) {
-                bool added = encrypted()[dst_id].insert(s).second;
+            for (const string &s : id_to_enc_set()[src_id]) {
+                bool added = id_to_enc_set()[dst_id].insert(s).second;
 
                 stringstream msg;
                 msg << ": ";
