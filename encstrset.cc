@@ -1,3 +1,10 @@
+/** @file
+ * Implementation of: encstrset.
+ *
+ * @author Kamil Zwierzchowski 418510
+ * @author Szymon Czyżmański 417797
+ */
+
 #include <iostream>
 #include <iomanip>
 #include <string>
