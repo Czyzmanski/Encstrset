@@ -1,10 +1,3 @@
-/** @file
- * Implementation of: encstrset.
- *
- * @author Kamil Zwierzchowski 418510
- * @author Szymon Czyżmański 417797
- */
-
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -19,11 +12,11 @@ static constexpr bool debug = false;
 static constexpr bool debug = true;
 #endif
 
-namespace {
-    using std::endl;
-    using std::string;
-    using std::stringstream;
+using std::endl;
+using std::string;
+using std::stringstream;
 
+namespace {
     /**
      * Funtion used to perform operation on set with given id.
      */
